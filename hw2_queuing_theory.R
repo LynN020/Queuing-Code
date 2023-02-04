@@ -4,14 +4,31 @@
 library(dplyr)
 
 
-getEventBasedResults <- function(S_of_n, A_of_n){
+getEventBasedResults <- function(S_of_n, A_of_n = NULL, T_of_n = NULL){
+  # Need at least 2 parameters! (S_of_n & either A_of_n or T_of_n)
 
-  # T(n) = inter-arrival time between n and n+1 customer 
-  get_T_of_n <- function(A_of_n){
-    return(dplyr::lead(A_of_n) - A_of_n)
+  # if A(n) arrival time is input, calculate T(n)
+  if(is.null(T_of_n)){ 
+    get_T_of_n <- function(A_of_n){
+      return(dplyr::lead(A_of_n) - A_of_n)
+    }
+    T_of_n <- get_T_of_n(A_of_n)
   }
   
-  T_of_n <- get_T_of_n(A_of_n)
+  # if T(n) inter-arrival is input, calculate A_of_n
+  # T(n) = inter-arrival time between n and n+1 customer
+  if(is.null(A_of_n)){
+    A_of_n <- c(0) # because first customer arrives at time 0 
+    
+    for(i in 2:length(T_of_n)){
+      this_A_of_n <- T_of_n[i-1] + A_of_n[i-1] 
+      A_of_n[i] <- this_A_of_n
+    }
+  
+  }
+   
+  print(T_of_n)
+  print(A_of_n)
   
   n <- length(A_of_n)
   
@@ -53,37 +70,68 @@ getEventBasedResults <- function(S_of_n, A_of_n){
   p_idle = 1-p_busy
   
 
-  result = list(result_table = output, column_sums = colSums(output), 
+  result = list(result_table = output, column_sums = colSums(output, na.rm = T), 
                 Wq = Wq, W = W, lambda = lambda, L= L, Lq= Lq, p_idle = p_idle)
   return(result)
   
 }
-  
 
 
-# Problem 1
+# Reset input to NULL's
+resetInputs <- function(){
+  S_of_n <<- NULL
+  T_of_n <<- NULL
+  A_of_n <<- NULL
+}
+
+
+# Problem 1 =====
+resetInputs()
 # customers
 n <- c(1:20)
-
 # Interarrival time (from n to n + 1)
 T_of_n <- c(1, 9, 6, 4, 7, 9, 5, 8, 4, 10, 6, 12, 6, 8, 9, 5, 7, 8, 8, 7)
 # Service Time
 S_of_n <- c(3, 7, 9, 9, 10, 4, 8, 5, 5, 3, 6, 3, 5, 4, 9, 9, 8, 6, 8, 3)
+hw2.prob1 <- getEventBasedResults(S_of_n = S_of_n, A_of_n = A_of_n, T_of_n = T_of_n)
+hw2.prob1
 
-bookkeeping_input <- data.frame(n, T_of_n, S_of_n)
+# subset where A(n) >= D(n-1) represents customers who immediately taken into service
+a <- hw2.prob1$result_table
+a <- a %>% filter(A_of_n >= lag(D_of_n))
+sum(a$S_of_n)/nrow(a) # S' = 6.43 = W'= system wait time of customers immediately served
 
 
 
-#Lecture Example ======
+
+
+# Lecture Example (Section 1.6 textbook) ======
+resetInputs()
 n <- c(1:12)
 S_of_n <- c(1, 3, 6, 2, 1, 1, 1, 2, 5, 1, 1, 3)
-A_of_n <- c(0, 2, 3, 6, 7, 8, 12, 14, 19, 20, 24, 26)
+# A_of_n <- c(0, 2, 3, 6, 7, 8, 12, 14, 19, 20, 24, 26)
 # what if T is provided? 
 T_of_n <- c(2, 1, 3, 1, 1, 4, 2, 5, 1, 4, 2, NA)
-result <- getEventBasedResults(S_of_n, A_of_n)
-result
+getEventBasedResults(S_of_n = S_of_n, A_of_n = A_of_n, T_of_n = T_of_n)
 
 
+
+
+
+
+
+
+
+
+
+# A(n) = time arrives 
+get_A_of_n <- function(){
+  if(n == 0){
+    return(0) # first customer's arrival starts the clock at system that starts out empty
+  }else{
+    return(T_of_n_minus_1 + A_of_n_minus_1)
+  }
+}
 
 
 
