@@ -7,6 +7,7 @@ library(dplyr)
 getEventBasedResults <- function(S_of_n, A_of_n = NULL, T_of_n = NULL){
   # Need at least 2 parameters! (S_of_n & either A_of_n or T_of_n)
 
+  # Given S(n) and A(n)
   # if A(n) arrival time is input, calculate T(n)
   if(is.null(T_of_n)){ 
     get_T_of_n <- function(A_of_n){
@@ -15,6 +16,7 @@ getEventBasedResults <- function(S_of_n, A_of_n = NULL, T_of_n = NULL){
     T_of_n <- get_T_of_n(A_of_n)
   }
   
+  # Given S(n) and T(n)
   # if T(n) inter-arrival is input, calculate A_of_n
   # T(n) = inter-arrival time between n and n+1 customer
   if(is.null(A_of_n)){
@@ -24,9 +26,8 @@ getEventBasedResults <- function(S_of_n, A_of_n = NULL, T_of_n = NULL){
       this_A_of_n <- T_of_n[i-1] + A_of_n[i-1] 
       A_of_n[i] <- this_A_of_n
     }
-  
   }
-   
+  
   print(T_of_n)
   print(A_of_n)
   
@@ -35,18 +36,15 @@ getEventBasedResults <- function(S_of_n, A_of_n = NULL, T_of_n = NULL){
   output <- data.frame(n = 1:n, A_of_n, S_of_n, T_of_n)
   
   # U(1) = time first customer enters service is 0 
-  output$U_of_n[1] <- 0 
+  output$U_of_n[1] <- A_of_n[1]#0 
   output$D_of_n[1] <- output$U_of_n[1] + output$S_of_n[1]
   output$Wq_of_n[1] <- output$U_of_n[1] - output$A_of_n[1]
   output$W_of_n[1] <- output$Wq_of_n[1] + output$S_of_n[1]
   
   for(i in 2:nrow(output)){
     output$U_of_n[i] <- max((output$D_of_n[i-1]), output$A_of_n[i]) 
-    output
     output$D_of_n[i] <- output$U_of_n[i] + output$S_of_n[i]
-    output
     output$Wq_of_n[i] <- output$U_of_n[i] - output$A_of_n[i]
-    output
     output$W_of_n[i] <- output$Wq_of_n[i] + output$S_of_n[i]
   }
   
@@ -56,7 +54,7 @@ getEventBasedResults <- function(S_of_n, A_of_n = NULL, T_of_n = NULL){
   # "mean system waiting time" or "mean time in system" = W
   W <- sum(output$W_of_n)/n
   
-  # lambda = rate of arrival = mean arrival rate 
+  # lambda = rate of arrival = mean arrival rate = # customers/total system time
   lambda <- n/output$D_of_n[n]
   
   # "average system size" = L 
@@ -75,6 +73,56 @@ getEventBasedResults <- function(S_of_n, A_of_n = NULL, T_of_n = NULL){
   return(result)
   
 }
+
+
+# Given D(n) & A(n)
+getEventBasedResults_given_D_and_A <- function(D_of_n, A_of_n){
+  
+  T_of_n <- dplyr::lead(A_of_n) - A_of_n
+  
+  o <- data.frame(n = 1:length(D_of_n), A_of_n, S_of_n = NA, T_of_n, 
+                       U_of_n = NA, D_of_n)
+  
+  o$S_of_n[1] <- o$D_of_n[1] - o$A_of_n[1]
+  o$U_of_n[1] <- o$D_of_n[1] - o$S_of_n[1]
+  o$Wq_of_n[1] <- o$U_of_n[1] - o$A_of_n[1]
+  o$W_of_n[1] <- o$Wq_of_n[1] + o$S_of_n[1]
+  
+  for(i in 2:nrow(o)){
+    o$U_of_n[i] <- max((o$D_of_n[i-1]), o$A_of_n[i]) 
+    o$S_of_n[i] <- o$D_of_n[i] - o$U_of_n[i]
+    o$Wq_of_n[i] <- o$U_of_n[i] - o$A_of_n[i]
+    o$W_of_n[i] <- o$Wq_of_n[i] + o$S_of_n[i]
+    
+  }
+  
+  n <- length(A_of_n)
+  
+  # "mean line delay" or "mean time in queue" = Wq
+  Wq <-  sum(o$Wq_of_n)/n
+  
+  # "mean system waiting time" or "mean time in system" = W
+  W <- sum(o$W_of_n)/n
+  
+  # lambda = rate of arrival = mean arrival rate 
+  lambda <- n/o$D_of_n[n]
+  
+  # "average system size" = L 
+  L <-  lambda*W
+  
+  # "average queue size" = Lq
+  Lq <- lambda*Wq
+  
+  # "fraction of time server was idle" = p_idle = 1-p_busy
+  p_busy = L-Lq
+  p_idle = 1-p_busy
+  
+  
+  result = list(result_table = o, column_sums = colSums(o, na.rm = T), 
+                Wq = Wq, W = W, lambda = lambda, L= L, Lq= Lq, p_idle = p_idle)
+  return(result)  
+}
+
 
 
 # Reset input to NULL's
@@ -102,6 +150,12 @@ a <- a %>% filter(A_of_n >= lag(D_of_n))
 sum(a$S_of_n)/nrow(a) # S' = 6.43 = W'= system wait time of customers immediately served
 
 
+# Problem 2 ========
+resetInputs()
+n <- 1:10
+A_of_n <- seq(5,50, by = 5)
+D_of_n <- c(7, 17, 23, 29, 35, 38, 39, 44, 46, 60)
+getEventBasedResults_given_D_and_A(D_of_n, A_of_n)
 
 
 
