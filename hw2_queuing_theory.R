@@ -2,8 +2,6 @@
 # Lyn Nguyen 
 
 library(dplyr)
-
-
 getEventBasedResults <- function(S_of_n, A_of_n = NULL, T_of_n = NULL){
   # Need at least 2 parameters! (S_of_n & either A_of_n or T_of_n)
 
@@ -77,12 +75,9 @@ getEventBasedResults <- function(S_of_n, A_of_n = NULL, T_of_n = NULL){
 
 # Given D(n) & A(n)
 getEventBasedResults_given_D_and_A <- function(D_of_n, A_of_n){
-  
   T_of_n <- dplyr::lead(A_of_n) - A_of_n
-  
   o <- data.frame(n = 1:length(D_of_n), A_of_n, S_of_n = NA, T_of_n, 
                        U_of_n = NA, D_of_n)
-  
   o$S_of_n[1] <- o$D_of_n[1] - o$A_of_n[1]
   o$U_of_n[1] <- o$D_of_n[1] - o$S_of_n[1]
   o$Wq_of_n[1] <- o$U_of_n[1] - o$A_of_n[1]
@@ -93,31 +88,21 @@ getEventBasedResults_given_D_and_A <- function(D_of_n, A_of_n){
     o$S_of_n[i] <- o$D_of_n[i] - o$U_of_n[i]
     o$Wq_of_n[i] <- o$U_of_n[i] - o$A_of_n[i]
     o$W_of_n[i] <- o$Wq_of_n[i] + o$S_of_n[i]
-    
   }
-  
   n <- length(A_of_n)
-  
   # "mean line delay" or "mean time in queue" = Wq
   Wq <-  sum(o$Wq_of_n)/n
-  
   # "mean system waiting time" or "mean time in system" = W
   W <- sum(o$W_of_n)/n
-  
   # lambda = rate of arrival = mean arrival rate 
   lambda <- n/o$D_of_n[n]
-  
   # "average system size" = L 
   L <-  lambda*W
-  
   # "average queue size" = Lq
   Lq <- lambda*Wq
-  
   # "fraction of time server was idle" = p_idle = 1-p_busy
   p_busy = L-Lq
   p_idle = 1-p_busy
-  
-  
   result = list(result_table = o, column_sums = colSums(o, na.rm = T), 
                 Wq = Wq, W = W, lambda = lambda, L= L, Lq= Lq, p_idle = p_idle)
   return(result)  
@@ -173,72 +158,28 @@ getEventBasedResults(S_of_n = S_of_n, A_of_n = A_of_n, T_of_n = T_of_n)
 
 
 
+# MARKOV CHAIN #####
+
+# Problem 5 
+P = matrix(c(.2, .3, .5, .4, .4, .2, .4, .6, 0), nrow = 3, byrow = T)
+# part b
+P%*%P
+# part c
+P%*%P%*%P%*%P%*%P%*%P%*%P%*%P%*%P%*%P 
+# part e
+P%*%P%*%P%*%P%*%P%*%P%*%P%*%P%*%P%*%P%*%P%*%P%*%P%*%P%*%P 
 
 
 
+# Problem 6 
+P = matrix(c(.25, .2, .12, .43, .25, .2, .12, .43,
+             0, .25, .2, .55, 0, 0, .25, .75), 
+           ncol = 4, byrow = T)
+P%*%P%*%P%*%P%*%P%*%P%*%P%*%P%*%P%*%P
+  # check if pi is correct 
+pi = matrix(c(.027, .077, .22561, .673), nrow = 1, byrow = T)
 
+pi %*% P
 
-# A(n) = time arrives 
-get_A_of_n <- function(){
-  if(n == 0){
-    return(0) # first customer's arrival starts the clock at system that starts out empty
-  }else{
-    return(T_of_n_minus_1 + A_of_n_minus_1)
-  }
-}
-
-
-
-
-# U(1) = time first customer enters service is 0 
-U_1 = 0
-
-# T(n) = inter-arrival time between n and n+1 customer 
-get_T_of_n <- function(A_of_n){
-  return(dplyr::lead(A_of_n) - A_of_n)
-}
-
-# A(n) = time arrives 
-get_A_of_n <- function(){
-  if(n == 0){
-    return(0) # first customer's arrival starts the clock at system that starts out empty
-  }else{
-    return(T_of_n_minus_1 + A_of_n_minus_1)
-  }
-}
-
-# U(n) = time customer n starts service
-get_U_of_n <- function(D_of_n, A_of_n){
- return(max(dplyr::lag(D_of_n), A_of_n))
-}
-
-# D(n) = Departure time
-get_D_of_n <- function(U_of_n, S_of_n){
-  return(U_of_n + S_of_n)
-}
-
-# Wq(n) = Time customer spends in q
-get_Wq_of_n <- function(U_of_n, A_of_n){
-  return(U_of_n - A_of_n)
-}
-
-# W(n) = Time customer spends in system
-get_W_of_n <- function(Wq_of_n, S_of_n){
-  return(Wq_of_n + S_of_n)
-}
-
-
-
-# Output 
-# average time in the q: Wq_of_n 
-# average time in the system: W_of_n
-
-# average system wait time of those who had to wait for service. 
-  # exclude those who were immediately taken into service 
-  # i.e. exclude n's where A(n) arrival = U(n) start service 
-
-# average length of queue ?? 
-
-# average number in the system: N_of_n
-
-# 
+e = matrix(c(1,1,1,1), nrow = 4)
+pi%*%e
